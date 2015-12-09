@@ -1,7 +1,11 @@
 #include <stdlib.h>
 #include <sys/param.h>
 #include <string.h>
+#include <math.h>
 #include "Knapsack.h"
+#include "main.h"
+
+#define IGNORE_LOWEST_BITS 4
 
 Instance *instance;
 int maxCost;
@@ -16,7 +20,7 @@ int calculateMaxCost() {
         cost += instance->things[i]->cost;
     }
 
-    return cost;
+    return cost >> IGNORE_LOWEST_BITS;
 }
 
 void initWeights() {
@@ -54,7 +58,7 @@ int evaluateTableCell(int thing, int cost) {
     int weightWithout, weightWith;
 
     weightWithout = getWeightOf(thing - 1, cost);
-    weightWith = getWeightOf(thing - 1, cost - instance->things[thing]->cost);
+    weightWith = getWeightOf(thing - 1, cost - (instance->things[thing]->cost >> IGNORE_LOWEST_BITS));
     if (weightWith < INT_MAX) weightWith += instance->things[thing]->weight;
     weights[thing][cost] = MIN(weightWithout, weightWith);
     return weights[thing][cost];
@@ -79,21 +83,24 @@ void reconstructBestResultVector(int thing, int cost) {
         bestResult->thingPresenceVector[thing] = 0;
     } else {
         bestResult->thingPresenceVector[thing] = 1;
-        cost -= instance->things[thing]->cost;
+        cost -= instance->things[thing]->cost >> IGNORE_LOWEST_BITS;
     }
     thing--;
     reconstructBestResultVector(thing, cost);
 }
 
 void findBestResult() {
-    int i;
+    int i, j;
 
     bestResult = createResult(instance);
     for (i = maxCost; i >= 0; --i) {
         if (weights[instance->thingCount - 1][i] <= instance->capacity) {
             bestResult->weight = weights[instance->thingCount - 1][i];
-            bestResult->cost = i;
             reconstructBestResultVector(instance->thingCount - 1, i);
+            bestResult->cost = 0;
+            for (j = 0; j < instance->thingCount; j++) {
+                if (bestResult->thingPresenceVector[j]) bestResult->cost += instance->things[j]->cost;
+            }
             break;
         }
     }
