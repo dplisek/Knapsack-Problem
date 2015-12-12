@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <getopt.h>
 #include "main.h"
 #include "Knapsack.h"
 #include "BruteForceAlwaysPresent.h"
 
-/*#define CALC_REL_ERR*/
-/*#define FILE_INPUT "/users/dominik/desktop/knapsack/data/myinst.dat"*/
+/*#define FILE_INPUT "/home/dominik/Developer/School/MI-PAA/knapsack/Data/myinst.dat"*/
 
 #ifdef FILE_INPUT
 #define INPUT_STREAM            fopen(FILE_INPUT, "r")
@@ -110,16 +110,17 @@ void freeInstance(Instance *instance) {
     free(instance);
 }
 
-int main(int argc, const char * argv[]) {
+int main(int argc, char *const *argv) {
     Instance *instance;
     Result *result;
     clock_t tt1, tt2;
     double elapsedTime;
-#ifdef CALC_REL_ERR
+    int calculateRelativeError;
     Result *bfResult;
     float relErr = 0.0;
     int totalInstances = 0;
-#endif
+
+    calculateRelativeError = getopt(argc, argv, "r") == -1 ? 0 : 1;
 
     inputFile = INPUT_STREAM;
     if (!inputFile) {
@@ -130,25 +131,27 @@ int main(int argc, const char * argv[]) {
     tt1 = clock();
     while ((instance = readInstance())) {
         result = solveInstance(instance);
-#ifdef CALC_REL_ERR
+        if (calculateRelativeError) {
             bfResult = solveInstanceBruteForce(instance);
-            relErr += (float) (bfResult->cost - result->cost) / bfResult->cost;
+            if (bfResult->cost) {
+                relErr += (float) (bfResult->cost - result->cost) / bfResult->cost;
+            }
             totalInstances++;
             freeResult(bfResult);
-#endif
+        }
         printResult(result, instance);
         if (result) freeResult(result);
         freeInstance(instance);
     }
     tt2 = clock();
 
-#ifdef CALC_REL_ERR
+    if (calculateRelativeError) {
         relErr /= totalInstances;
         fprintf(stderr, "%.4f\n", relErr);
-#else
+    } else {
         elapsedTime = ((double) tt2 - tt1) / (CLOCKS_PER_SEC / 1000);
         fprintf(stderr, "%.3f\n", elapsedTime);
-#endif
+    }
 
     CLOSE_INPUT_STREAM;
 

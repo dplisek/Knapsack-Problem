@@ -5,7 +5,7 @@
 #include "Knapsack.h"
 #include "main.h"
 
-#define IGNORE_LOWEST_BITS 4
+#define IGNORE_LOWEST_BITS 0
 
 Instance *instance;
 int maxCost;
